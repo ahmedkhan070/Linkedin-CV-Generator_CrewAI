@@ -3,4 +3,4 @@ python-dotenv
 python-docx
 crewai
 crewai-tools
-
+pysqlite3-binary
