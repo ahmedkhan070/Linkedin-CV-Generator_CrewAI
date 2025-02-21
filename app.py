@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import time
 from crewai import Agent, Task, Crew, LLM
-from crewai_tools import FileReadTool, ScrapeWebsiteTool, FileWriterTool
+from crewai_tools import FileReadTool, ScrapeWebsiteTool
 from dotenv import load_dotenv
 from textfileconvertor import convert_md_to_docx
 
@@ -137,13 +137,13 @@ if st.button("Generate CV"):
             cv_path = convert_md_to_docx("tailored_resume.md")
             interview_path = convert_md_to_docx("interview_materials.md")
 
-            # Store in session state for persistent download buttons
-            with open(cv_path, "rb") as f:
-                st.session_state.cv_content = f.read()
+            # Read files separately to prevent overwriting
+            with open(cv_path, "rb") as cv_file:
+                st.session_state.cv_content = cv_file.read()
                 st.session_state.cv_ready = True
 
-            with open(interview_path, "rb") as f:
-                st.session_state.interview_content = f.read()
+            with open(interview_path, "rb") as interview_file:
+                st.session_state.interview_content = interview_file.read()
                 st.session_state.interview_ready = True
 
             st.success("CV and Interview Materials generated successfully!")
