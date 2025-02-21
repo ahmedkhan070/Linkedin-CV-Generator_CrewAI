@@ -1,185 +1,166 @@
+import streamlit as st
+import os
+import time
+from crewai import Agent, Task, Crew, LLM
+from crewai_tools import FileReadTool, ScrapeWebsiteTool, FileWriterTool
+from dotenv import load_dotenv
+from textfileconvertor import convert_md_to_docx
+
+# Ensure correct SQLite version (needed for ChromaDB)
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
-import streamlit as st
-import os
-from crewai import Agent, Task, Crew
-from crewai_tools import FileReadTool, ScrapeWebsiteTool, FileWriterTool
-from crewai import LLM
-from dotenv import load_dotenv
-from textfileconvertor import convert_md_to_docx
-import time
 
 # Load environment variables
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Streamlit page configuration
-st.set_page_config(page_title="LinkedIn Tailored CV Generator - Powered by CrewAI", layout="wide")
+st.set_page_config(page_title="LinkedIn Tailored CV Generator", layout="wide")
 
-# Add CrewAI logo and Image
+# Display CrewAI logo
 st.image("crewai_logo.svg", width=200)
-st.logo("crewai_logo.svg")
 
-# Sidebar for project guide
+# Sidebar guide
 st.sidebar.title("Project Guide")
 st.sidebar.info("""
 1. Enter the LinkedIn Job Post URL.
 2. Upload your basic information as a `.txt` file.
 3. Click **Generate CV** and wait for processing.
-4. Download your tailored CV and interview material in `.docx` format.
+4. Download your tailored CV and interview materials in `.docx` format.
 """)
 
-# UI Layout
+# UI Inputs
 st.title("LinkedIn Tailored CV Generator - Powered by CrewAI")
-col1, col2 = st.columns(2)
-with col1:
-    linkedin_url = st.text_input("Enter LinkedIn Job Post URL")
-with col2:
-    uploaded_file = st.file_uploader("Upload your information (.txt file)", type=["txt"])
+linkedin_url = st.text_input("Enter LinkedIn Job Post URL")
+uploaded_file = st.file_uploader("Upload your information (.txt file)", type=["txt"])
 
+# Initialize session state to persist file downloads
+if "cv_ready" not in st.session_state:
+    st.session_state.cv_ready = False
+if "interview_ready" not in st.session_state:
+    st.session_state.interview_ready = False
+
+# Generate CV Button
 if st.button("Generate CV"):
     if not linkedin_url or not uploaded_file:
         st.error("Please provide both a LinkedIn URL and an information file.")
     else:
         with st.spinner("Processing your request..."):
-            time.sleep(2)  # Simulating processing delay
+            time.sleep(2)  # Simulating delay
 
             # Read user info
             user_info = uploaded_file.read().decode("utf-8")
 
-            # Initialize LLM
-            llm = LLM(model="gemini/gemini-1.5-flash", temperature=0.7, api_key=GEMINI_API_KEY)
-            
-            # Initialize tools
-            scrape_tool = ScrapeWebsiteTool()
-            read_info_tool = FileReadTool(file_path="user_info.txt")
-            
             # Save user info temporarily
             with open("user_info.txt", "w") as f:
                 f.write(user_info)
-            
-            # Define the scraping agent
+
+            # Initialize LLM
+            llm = LLM(model="gemini/gemini-1.5-flash", temperature=0.7, api_key=GEMINI_API_KEY)
+
+            # Initialize tools
+            scrape_tool = ScrapeWebsiteTool()
+            read_info_tool = FileReadTool(file_path="user_info.txt")
+
+            # Define Agents
             Scraper = Agent(
                 role="LinkedIn Job Post Scraper",
                 goal="Extract job details from LinkedIn job post.",
-                backstory="An expert web scraper capable of extracting key job details from a LinkedIn job post",
+                backstory="Expert web scraper capable of extracting key job details.",
                 tools=[scrape_tool],
                 llm=llm
             )
-            
-            # Define the analysis agent
+
             FileReader = Agent(
                 role="User Data Reader",
                 goal="Read user details from a text file.",
-                backstory="A diligent reader, ensuring accurate extraction of user details.",
+                backstory="Ensures accurate extraction of user details.",
                 verbose=True,
                 tools=[read_info_tool],
                 llm=llm
             )
-            
-            # Define the writer agent
+
             Writer = Agent(
                 role="CV Writer",
                 goal="Write a compelling CV tailored to the job description and user information.",
-                backstory="An expert CV writer with experience in tailoring resumes based on job descriptions.",
-                llm=llm
-            )
-            
-            # Agent 4: Interview Preparer
-            interview_preparer = Agent(
-                role="Engineering Interview Preparer",
-                goal="Create interview questions and talking points "
-                    "based on the resume and job requirements",
-                verbose=True,
-                backstory=(
-                    "Your role is crucial in anticipating the dynamics of "
-                    "interviews. With your ability to formulate key questions "
-                    "and talking points, you prepare candidates for success, "
-                    "ensuring they can confidently address all aspects of the "
-                    "job they are applying for."
-                ),
+                backstory="Expert CV writer with experience in tailoring resumes.",
                 llm=llm
             )
 
-            # Define tasks
+            InterviewPreparer = Agent(
+                role="Interview Preparer",
+                goal="Create interview questions based on the resume and job requirements.",
+                verbose=True,
+                backstory="Prepares candidates with key questions and talking points for success.",
+                llm=llm
+            )
+
+            # Define Tasks
             scrape_task = Task(
-                description="Scrape job details from the given LinkedIn URL.",
+                description="Scrape job details from the LinkedIn URL.",
                 agent=Scraper,
-                expected_output="Extract job title, description and qualifications required"
+                expected_output="Extract job title, description, and qualifications."
             )
 
             filereader_task = Task(
-                description="Analyze the job description and extract key skills and requirements.",
-                expected_output="Extract user details like name, skills, and experience.", 
+                description="Analyze the job description and extract key skills.",
+                expected_output="Extract user details like name, skills, and experience.",
                 agent=FileReader
             )
 
             write_task = Task(
-                description="Generate a CV based on the analyzed job description and user info.",
+                description="Generate a CV based on job description and user info.",
                 agent=Writer,
-                expected_output="A professional CV as markdown file with # used for headings.", 
+                expected_output="A professional CV in markdown format.",
                 output_file="tailored_resume.md",
                 context=[scrape_task, filereader_task]
             )
-            
-            interview_preparation_task = Task(
-                description=(
-                    "Create a set of potential interview questions and talking "
-                    "points based on the tailored resume and job requirements. "
-                    "Utilize tools to generate relevant questions and discussion "
-                    "points. Make sure to use these question and talking points to "
-                    "help the candidate highlight the main points of the resume "
-                    "and how it matches the job posting."
-                ),
-                expected_output=(
-                    "A document containing key questions and talking points "
-                    "that the candidate should prepare for the initial interview."
-                ),
+
+            interview_task = Task(
+                description="Create interview questions based on resume and job requirements.",
+                expected_output="Document containing key questions and talking points.",
                 output_file="interview_materials.md",
                 context=[scrape_task, filereader_task],
-                agent=interview_preparer
+                agent=InterviewPreparer
             )
 
-            # Create crew and execute tasks
-            crew = Crew(agents=[Scraper, FileReader, Writer, interview_preparer], tasks=[scrape_task, filereader_task, write_task, interview_preparation_task])
+            # Execute tasks
+            crew = Crew(agents=[Scraper, FileReader, Writer, InterviewPreparer], tasks=[scrape_task, filereader_task, write_task, interview_task])
             try:
                 crew.kickoff()
             except Exception as e:
-                st.error(f"An error occurred while generating the CV: {str(e)}. Please try again later.")
+                st.error(f"Error generating the CV: {str(e)}")
                 st.stop()
-            
-            # Convert Markdown to Word Document with formatting
-            doc_path = convert_md_to_docx("tailored_resume.md")
-            interview_doc_path = convert_md_to_docx("interview_materials.md")
-            
-            # Store file contents in session state to persist them
-            if "cv_content" not in st.session_state:
-                with open(doc_path, "rb") as f:
-                    st.session_state["cv_content"] = f.read()  # Store file data
-            
-            if "interview_content" not in st.session_state:
-                with open(interview_doc_path, "rb") as f:
-                    st.session_state["interview_content"] = f.read()  # Store file data
-            
-            # Display success message
-            st.success("CV Generation Completed!")
-            
-            # Ensure buttons persist
-            if "cv_content" in st.session_state:
-                st.download_button(
-                    "Download CV",
-                    st.session_state["cv_content"],
-                    file_name="Formatted_CV.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-            
-            if "interview_content" in st.session_state:
-                st.download_button(
-                    "Download Interview Material",
-                    st.session_state["interview_content"],
-                    file_name="Interview_Material.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
 
+            # Convert Markdown to Word Document
+            cv_path = convert_md_to_docx("tailored_resume.md")
+            interview_path = convert_md_to_docx("interview_materials.md")
+
+            # Store in session state for persistent download buttons
+            with open(cv_path, "rb") as f:
+                st.session_state.cv_content = f.read()
+                st.session_state.cv_ready = True
+
+            with open(interview_path, "rb") as f:
+                st.session_state.interview_content = f.read()
+                st.session_state.interview_ready = True
+
+            st.success("CV and Interview Materials generated successfully!")
+
+# Download Buttons (Always Visible if Files Ready)
+if st.session_state.cv_ready:
+    st.download_button(
+        "Download CV",
+        st.session_state.cv_content,
+        file_name="Formatted_CV.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+if st.session_state.interview_ready:
+    st.download_button(
+        "Download Interview Material",
+        st.session_state.interview_content,
+        file_name="Interview_Material.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
