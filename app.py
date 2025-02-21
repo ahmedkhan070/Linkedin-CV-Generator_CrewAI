@@ -134,8 +134,8 @@ if st.button("Generate CV"):
                 st.stop()
 
             # Convert Markdown to Word Document
-            cv_path = convert_md_to_docx("tailored_resume.md")
-            interview_path = convert_md_to_docx("interview_materials.md")
+            cv_path = convert_md_to_docx("tailored_resume.md",output_docx="Formatted_CV.docx")
+            interview_path = convert_md_to_docx("interview_materials.md",output_docx="Formatted_Interview_Material.docx")
 
             # Read files separately to prevent overwriting
             with open(cv_path, "rb") as cv_file:
