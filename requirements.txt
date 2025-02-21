@@ -4,3 +4,4 @@ python-docx
 crewai
 crewai-tools
 chromadb
+pysqlite3-binary
