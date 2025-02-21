@@ -58,9 +58,6 @@ streamlit run app.py
 └── README.md                 # This ReadMe file
 ```
 
-## 🎨 UI Preview
-![App Screenshot](screenshot.png)
-
 ## 🛠️ Built With
 - **Python** 🐍
 - **Streamlit** 📊
@@ -74,7 +71,7 @@ This project is licensed under the **MIT License**.
 We welcome contributions! Feel free to fork the repository and submit a **pull request**.
 
 ## 📩 Contact
-For issues or feature requests, open an issue or reach out at **your-email@example.com**.
+For issues or feature requests, open an issue or reach out at **ahmed_khan070@hotmail.com**.
 
 ---
 **Happy Coding! 🚀**
