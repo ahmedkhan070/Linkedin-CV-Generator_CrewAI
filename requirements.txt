@@ -3,5 +3,4 @@ python-dotenv
 python-docx
 crewai
 crewai-tools
-chromadb
-pysqlite3-binary
+
