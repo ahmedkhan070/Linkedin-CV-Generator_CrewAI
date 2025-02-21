@@ -154,16 +154,32 @@ if st.button("Generate CV"):
             doc_path = convert_md_to_docx("tailored_resume.md")
             interview_doc_path = convert_md_to_docx("interview_materials.md")
             
-            # Store file paths in session state to persist them
-            st.session_state["cv_path"] = doc_path
-            st.session_state["interview_path"] = interview_doc_path
+            # Store file contents in session state to persist them
+            if "cv_content" not in st.session_state:
+                with open(doc_path, "rb") as f:
+                    st.session_state["cv_content"] = f.read()  # Store file data
             
-
-            # Ensure buttons persist using session state
-            if "cv_path" in st.session_state and "interview_path" in st.session_state:
-                with open(st.session_state["cv_path"], "rb") as f:
-                    st.download_button("Download CV", f, file_name="Formatted_CV.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-                
-                with open(st.session_state["interview_path"], "rb") as f:
-                    st.download_button("Download Interview Material", f, file_name="Interview_Material.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            if "interview_content" not in st.session_state:
+                with open(interview_doc_path, "rb") as f:
+                    st.session_state["interview_content"] = f.read()  # Store file data
+            
+            # Display success message
+            st.success("CV Generation Completed!")
+            
+            # Ensure buttons persist
+            if "cv_content" in st.session_state:
+                st.download_button(
+                    "Download CV",
+                    st.session_state["cv_content"],
+                    file_name="Formatted_CV.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+            
+            if "interview_content" in st.session_state:
+                st.download_button(
+                    "Download Interview Material",
+                    st.session_state["interview_content"],
+                    file_name="Interview_Material.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
 
