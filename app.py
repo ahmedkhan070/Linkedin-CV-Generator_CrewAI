@@ -154,12 +154,16 @@ if st.button("Generate CV"):
             doc_path = convert_md_to_docx("tailored_resume.md")
             interview_doc_path = convert_md_to_docx("interview_materials.md")
             
-            # download button for cv
-            st.success("CV Generation Completed!")
-            with open(doc_path, "rb") as f:
-                st.download_button("Download CV", f, file_name="Formatted_CV.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            # Store file paths in session state to persist them
+            st.session_state["cv_path"] = doc_path
+            st.session_state["interview_path"] = interview_doc_path
             
-            # download button for interview materials
-            with open(interview_doc_path, "rb") as f:
-                st.download_button("Download Interview Material", f, file_name="Interview_Material.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+
+            # Ensure buttons persist using session state
+            if "cv_path" in st.session_state and "interview_path" in st.session_state:
+                with open(st.session_state["cv_path"], "rb") as f:
+                    st.download_button("Download CV", f, file_name="Formatted_CV.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                
+                with open(st.session_state["interview_path"], "rb") as f:
+                    st.download_button("Download Interview Material", f, file_name="Interview_Material.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
