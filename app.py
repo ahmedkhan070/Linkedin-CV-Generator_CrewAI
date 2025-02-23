@@ -1,3 +1,8 @@
+# Ensure correct SQLite version (needed for ChromaDB)
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 import streamlit as st
 import os
 import time
@@ -5,11 +10,6 @@ from crewai import Agent, Task, Crew, LLM
 from crewai_tools import FileReadTool, ScrapeWebsiteTool
 from dotenv import load_dotenv
 from textfileconvertor import convert_md_to_docx
-
-# Ensure correct SQLite version (needed for ChromaDB)
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 # Load environment variables
 load_dotenv()
